@@ -21,6 +21,7 @@ module p2plending::p2plending {
         borrower: address,
         amount: u64,
         interest_rate: u64, // Interest rate as a percentage scaled by FLOAT_SCALING
+        current_date: u64,
         due_date: u64,
         repaid: bool,
     }
@@ -64,6 +65,7 @@ module p2plending::p2plending {
             borrower: lender,
             amount: amount,
             interest_rate: interest_rate,
+            current_date: 0,
             due_date: due_date,
             repaid: false 
         };
@@ -71,120 +73,25 @@ module p2plending::p2plending {
     }
 
     // Take a loan
-    public fun take_loan(self: &mut LoanRegistry, loan_id: ID, coin_: Coin<SUI>, ctx: &mut TxContext) : Loan {
-        let loan = table::remove(&mut self.loans, loan_id);
+    public fun take_loan(self: &mut LoanRegistry, loan_id: ID, coin_: Coin<SUI>, c: &Clock, ctx: &mut TxContext) : Loan {
+        let mut loan = table::remove(&mut self.loans, loan_id);
+        loan.current_date = timestamp_ms(c);
         assert!(coin_.value() > loan.amount, ERROR_INSUFFICENT_BALANCE);
         coin::put(&mut self.balance, coin_);
         loan
     }
 
     // Repay a loan
-    public fun repay_loan(self: &mut LoanRegistry, loan: Loan, ctx: &mut TxContext) : Coin<SUI> {
-        let coin_ = coin::take(&mut self.balance, loan.amount, ctx);
+    public fun repay_loan(self: &mut LoanRegistry, loan: Loan, c: &Clock, ctx: &mut TxContext) : Coin<SUI> {
+        let previous = loan.current_date;
+        let interest = (timestamp_ms(c) - previous) * (calculate_interest(loan.amount, loan.interest_rate));
+        let coin_ = coin::take(&mut self.balance, loan.amount - interest, ctx);
         table::add(&mut self.loans, object::id(&loan), loan);
         coin_
     }
 
-    // // Get user loans
-    // public fun get_user_loans(ctx: &mut TxContext): (vector<Loan>, vector<Loan>, vector<Loan>, vector<Loan>) {
-    //     let user = sender(ctx);
-    //     let mut given_loans_unpaid = vector::empty<Loan>();
-    //     let mut given_loans_paid = vector::empty<Loan>();
-    //     let mut taken_loans_unpaid = vector::empty<Loan>();
-    //     let mut taken_loans_paid = vector::empty<Loan>();
-
-    //     let loan_registry = borrow_global<LoanRegistry>(user);
-    //     for loan in &loan_registry.loans {
-    //         if loan.lender == user {
-    //             if loan.repaid {
-    //                 vector::push_back(&mut given_loans_paid, *loan);
-    //             } else {
-    //                 vector::push_back(&mut given_loans_unpaid, *loan);
-    //             }
-    //         } else if loan.borrower == user {
-    //             if loan.repaid {
-    //                 vector::push_back(&mut taken_loans_paid, *loan);
-    //             } else {
-    //                 vector::push_back(&mut taken_loans_unpaid, *loan);
-    //             }
-    //         }
-    //     }
-
-    //     (given_loans_unpaid, given_loans_paid, taken_loans_unpaid, taken_loans_paid)
-    // }
-
-    // // Add a star to the user reputation
-    // public fun add_star(user: address) {
-    //     let reputation = borrow_global_mut<UserReputation>(user);
-    //     reputation.stars += 1;
-    // }
-
-    // // Add a review to the user reputation
-    // public fun add_review(user: address, review: vector<u8>, ctx: &mut TxContext) {
-    //     let reputation = borrow_global_mut<UserReputation>(user);
-    //     vector::push_back(&mut reputation.reviews, review);
-    // }
-
-    // // Get user reputation
-    // public fun get_reputation(user: address, ctx: &mut TxContext): (u64, vector<vector<u8>>) {
-    //     let reputation = borrow_global<UserReputation>(user);
-    //     (reputation.stars, reputation.reviews)
-    // }
-
-    // // Find loan index by ID
-    // fun find_loan_index_by_id(loans: &vector<Loan>, loan_id: UID): Option<u64> {
-    //     for i in 0..vector::length(loans) {
-    //         let loan = &loans[i];
-    //         if loan.id == loan_id {
-    //             return Option::some(i);
-    //         }
-    //     }
-    //     Option::none()
-    // }
-
-    // // Calculate interest
-    // fun calculate_interest(amount: u64, interest_rate: u64): u64 {
-    //     (amount * interest_rate) / FLOAT_SCALING
-    // }
-
-    // // Check due dates and apply penalties
-    // public fun check_due_dates(ctx: &mut TxContext) {
-    //     let user = sender(ctx);
-    //     let current_time = timestamp_ms(ctx);
-    //     let loan_registry = borrow_global_mut<LoanRegistry>(user);
-    //     for loan in &mut loan_registry.loans {
-    //         if loan.due_date < current_time && !loan.repaid {
-    //             penalize_borrower(loan.borrower);
-    //             apply_late_fee(loan);
-    //         }
-    //     }
-    // }
-
-    // // Penalize borrower for late payment
-    // fun penalize_borrower(borrower: address) {
-    //     let reputation = borrow_global_mut<UserReputation>(borrower);
-    //     if reputation.stars > 0 {
-    //         reputation.stars -= 1;
-    //     }
-    // }
-
-    // // Apply late fee to the loan
-    // fun apply_late_fee(loan: &mut Loan) {
-    //     let late_fee = loan.amount / 10; // 10% late fee
-    //     loan.amount += late_fee;
-    // }
-
-    // // Handle loan repaid event
-    // public fun handle_loan_repaid_event(event: &LoanRepaidEvent) {
-    //     // Notify lender
-    //     notify_lender(event.lender, event.borrower, event.amount);
-
-    //     // Update lender's reputation
-    //     add_star(event.lender);
-    // }
-
-    // // Notify lender
-    // fun notify_lender(lender: address, borrower: address, amount: u64) {
-    //     // Implementation for notifying the lender, e.g., sending a message
-    // }
+    // Calculate interest
+    fun calculate_interest(amount: u64, interest_rate: u64): u64 {
+        (amount * interest_rate) / FLOAT_SCALING
+    }
 }
