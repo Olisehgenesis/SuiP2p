@@ -78,23 +78,12 @@ module p2plending::p2plending {
         loan
     }
 
-    // // Repay a loan
-    // public fun repay_loan(account: &signer, lender: address, loan_id: UID, ctx: &mut TxContext) {
-    //     let borrower = sender(ctx);
-    //     let loan_registry = borrow_global_mut<LoanRegistry>(lender);
-    //     let loan_index = find_loan_index_by_id(&loan_registry.loans, loan_id);
-    //     assert!(loan_index.is_some(), 103); // Loan ID not found
-    //     let loan = &mut loan_registry.loans[loan_index.unwrap()];
-    //     assert!(loan.borrower == borrower, 100); // Only the borrower can repay the loan
-    //     assert!(!loan.repaid, 101); // Loan should not be already repaid
-
-    //     let amount_due = loan.amount + calculate_interest(loan.amount, loan.interest_rate);
-    //     transfer::public_transfer(SUI::mint(amount_due, ctx), lender);
-    //     loan.repaid = true;
-
-    //     Event::emit(LoanRepaidEvent { lender, borrower, amount: amount_due });
-    //     add_star(borrower); // Add star to the borrower for timely repayment
-    // }
+    // Repay a loan
+    public fun repay_loan(self: &mut LoanRegistry, loan: Loan, ctx: &mut TxContext) : Coin<SUI> {
+        let coin_ = coin::take(&mut self.balance, loan.amount, ctx);
+        table::add(&mut self.loans, object::id(&loan), loan);
+        coin_
+    }
 
     // // Get user loans
     // public fun get_user_loans(ctx: &mut TxContext): (vector<Loan>, vector<Loan>, vector<Loan>, vector<Loan>) {
