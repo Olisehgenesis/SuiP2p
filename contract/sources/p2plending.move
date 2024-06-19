@@ -64,18 +64,6 @@ module p2plending::p2plending {
         vector::push_back(&mut self.loans, loan);
     }
 
-    // // View available loans
-    // public fun view_available_loans(ctx: &mut TxContext): vector<Loan> {
-    //     let loan_registry = borrow_global<LoanRegistry>(sender(ctx));
-    //     let mut available_loans = vector::empty<Loan>();
-    //     for loan in &loan_registry.loans {
-    //         if loan.borrower == address::ZERO {
-    //             vector::push_back(&mut available_loans, *loan);
-    //         }
-    //     }
-    //     available_loans
-    // }
-
     // // Take a loan
     // public fun take_loan(account: &signer, lender: address, loan_id: UID, ctx: &mut TxContext) {
     //     let borrower = sender(ctx);
