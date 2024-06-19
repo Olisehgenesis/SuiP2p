@@ -41,7 +41,7 @@ module p2plending::p2plending {
     }
 
     // Initializer
-    fun init(account: &signer, ctx: &mut TxContext) {
+    fun init(ctx: &mut TxContext) {
         transfer::share_object(
             LoanRegistry { id: object::new(ctx), loans: vector::empty<Loan>() },
         );
@@ -50,21 +50,19 @@ module p2plending::p2plending {
         );
     }
 
-    // // Create a new loan
-    // public fun create_loan(account: &signer, amount: u64, interest_rate: u64, due_date: u64, ctx: &mut TxContext) {
-    //     let lender = sender(ctx);
-    //     let loan = Loan { 
-    //         id: UID::new(ctx),
-    //         lender: lender,
-    //         borrower: address::ZERO,
-    //         amount: amount,
-    //         interest_rate: interest_rate,
-    //         due_date: due_date,
-    //         repaid: false 
-    //     };
-    //     let loan_registry = borrow_global_mut<LoanRegistry>(lender);
-    //     vector::push_back(&mut loan_registry.loans, loan);
-    // }
+    // Create a new loan
+    public fun create_loan(self: &mut LoanRegistry, amount: u64, interest_rate: u64, due_date: u64, ctx: &mut TxContext) {
+        let lender = sender(ctx);
+        let loan = Loan { 
+            lender: lender,
+            borrower: ctx.sender(),
+            amount: amount,
+            interest_rate: interest_rate,
+            due_date: due_date,
+            repaid: false 
+        };
+        vector::push_back(&mut self.loans, loan);
+    }
 
     // // View available loans
     // public fun view_available_loans(ctx: &mut TxContext): vector<Loan> {
