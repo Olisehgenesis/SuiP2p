@@ -14,7 +14,6 @@ module p2plending::p2plending {
     const FLOAT_SCALING: u64 = 1_000_000_000;
 
     public struct Loan has copy, drop, store {
-
         lender: address,
         borrower: address,
         amount: u64,
@@ -41,15 +40,15 @@ module p2plending::p2plending {
         amount: u64,
     }
 
-    // // Initializer
-    // public fun initialize(account: &signer, ctx: &mut TxContext) {
-    //     transfer::share_object(
-    //         LoanRegistry { id: UID::new(ctx), loans: vector::empty<Loan>() },
-    //     );
-    //     transfer::share_object(
-    //         UserReputation { id: UID::new(ctx), user: sender(ctx), stars: 0, reviews: vector::empty<vector<u8>>() },
-    //     );
-    // }
+    // Initializer
+    fun init(account: &signer, ctx: &mut TxContext) {
+        transfer::share_object(
+            LoanRegistry { id: object::new(ctx), loans: vector::empty<Loan>() },
+        );
+        transfer::share_object(
+            UserReputation { id: object::new(ctx), user: sender(ctx), stars: 0, reviews: vector::empty<vector<u8>>() },
+        );
+    }
 
     // // Create a new loan
     // public fun create_loan(account: &signer, amount: u64, interest_rate: u64, due_date: u64, ctx: &mut TxContext) {
